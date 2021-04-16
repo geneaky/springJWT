@@ -3,6 +3,8 @@ package com.toy.jwt.config.jwt;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.toy.jwt.config.auth.PrincipalDetails;
 import com.toy.jwt.model.User;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -14,8 +16,11 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
 
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilter{
@@ -48,6 +53,19 @@ public class JwtAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     @Override
     protected void successfulAuthentication(HttpServletRequest request, HttpServletResponse response, FilterChain chain, Authentication authResult) throws IOException, ServletException {
         System.out.println(" successfulAuthentitcation이 실행됨 인증이 완료되었다는 뜻");
-        super.successfulAuthentication(request, response, chain, authResult);
+        PrincipalDetails principalDetails = (PrincipalDetails) authResult.getPrincipal();
+
+        Map<String,Object> claims = new HashMap<>();
+        claims.put("id",principalDetails.getUser().getId());
+        claims.put("username",principalDetails.getUser().getUsername());
+
+        String jwtToken = Jwts.builder()
+                .setSubject("jsessionID")
+                .setExpiration(new Date(System.currentTimeMillis()+1800000))
+                .setClaims(claims)
+                .signWith(SignatureAlgorithm.HS512,"jsession")
+                .compact();
+
+        response.addHeader("Authorization","Bearer "+jwtToken);
     }
 }
